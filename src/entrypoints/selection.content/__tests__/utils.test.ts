@@ -1,6 +1,11 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { buildContextSnapshot, createRangeSnapshot, readSelectionSnapshot } from "../utils"
+import {
+  buildContextSnapshot,
+  createRangeSnapshot,
+  getSelectionSpeechText,
+  readSelectionSnapshot,
+} from "../utils"
 
 function createSelectionSnapshot(range: Range, text = range.toString()) {
   return {
@@ -585,5 +590,44 @@ describe("readSelectionSnapshot", () => {
       ],
     })
     expect(getRangeAt).toHaveBeenCalledWith(0)
+  })
+})
+
+describe("getSelectionSpeechText", () => {
+  afterEach(() => {
+    document.body.innerHTML = ""
+  })
+
+  function selectRubyParagraph(): Selection {
+    document.body.innerHTML = "<p>今日は<ruby>漢字<rt>かんじ</rt></ruby>を読む</p>"
+    const paragraph = document.querySelector("p")
+    if (!paragraph) throw new Error("paragraph missing")
+    const range = document.createRange()
+    range.selectNodeContents(paragraph)
+
+    return {
+      toString: () => "今日は漢字かんじを読む",
+      anchorNode: paragraph,
+      focusNode: paragraph,
+      rangeCount: 1,
+      getRangeAt: () => range,
+      getComposedRanges: () => [],
+    } as unknown as Selection
+  }
+
+  it("keeps the historical text when the option is off", () => {
+    const snapshot = readSelectionSnapshot(selectRubyParagraph())
+    expect(snapshot).not.toBeNull()
+    expect(getSelectionSpeechText(snapshot!, false)).toBe("今日は漢字かんじを読む")
+  })
+
+  it("drops <rt> readings when the option is on", () => {
+    const snapshot = readSelectionSnapshot(selectRubyParagraph())
+    expect(snapshot).not.toBeNull()
+    expect(getSelectionSpeechText(snapshot!, true)).toBe("今日は漢字を読む")
+  })
+
+  it("falls back to the captured text when there are no ranges", () => {
+    expect(getSelectionSpeechText({ text: "漢字かんじ", ranges: [] }, true)).toBe("漢字かんじ")
   })
 })

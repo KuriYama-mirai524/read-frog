@@ -1,6 +1,7 @@
 import { useAtom } from "jotai"
 import { useState } from "react"
 import { Input } from "@/components/ui/base-ui/input"
+import { Switch } from "@/components/ui/base-ui/switch"
 import { toastManager } from "@/components/ui/base-ui/toast"
 import {
   MAX_TTS_PITCH,
@@ -66,6 +67,18 @@ export function SpeechSection() {
           schema={ttsVolumeSchema}
           onValue={(volume) => {
             void setTtsConfig({ volume })
+          }}
+        />
+      </ConfigItem>
+      <ConfigItem
+        id="tts-strip-ruby"
+        title={i18n.t("options.tts.speech.stripRuby.title")}
+        description={i18n.t("options.tts.speech.stripRuby.description")}
+      >
+        <Switch
+          checked={ttsConfig.stripRuby}
+          onCheckedChange={(checked) => {
+            void setTtsConfig({ stripRuby: checked })
           }}
         />
       </ConfigItem>

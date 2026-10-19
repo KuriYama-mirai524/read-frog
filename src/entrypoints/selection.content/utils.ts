@@ -276,6 +276,39 @@ export function readSelectionSnapshot(selection: Selection | null): SelectionSna
   return textControl ? { text, ranges, textControl } : { text, ranges }
 }
 
+/**
+ * Text to hand to text-to-speech, optionally without ruby annotations.
+ *
+ * `Selection.toString()` (and `textContent`) walk into `<rt>`, so on a page
+ * annotated by Furigana Maker/Yomitan every kanji word would be read twice:
+ * once as the base text, once as its reading. Reader modes and sites with real
+ * `<ruby>` markup hit the same thing. Removing `rt`/`rp` from a clone of the
+ * range keeps only the base text, which the TTS engine then reads once.
+ *
+ * Falls back to the captured text when the selection has no ranges (text
+ * controls) or the clone yields nothing.
+ */
+export function getSelectionSpeechText(selection: SelectionSnapshot, stripRuby: boolean): string {
+  if (!stripRuby || selection.textControl || selection.ranges.length === 0) {
+    return selection.text
+  }
+
+  const parts: string[] = []
+  for (const rangeSnapshot of selection.ranges) {
+    const range = toLiveRange(rangeSnapshot)
+    if (range.collapsed) {
+      continue
+    }
+
+    const container = document.createElement("div")
+    container.append(range.cloneContents())
+    container.querySelectorAll("rt, rp").forEach((node) => node.remove())
+    parts.push(container.textContent ?? "")
+  }
+
+  return normalizeSelectedText(parts.join("\n")) || selection.text
+}
+
 function getCommonAncestorNode(startContainer: Node, endContainer: Node) {
   const startAncestors = new Set<Node>()
   let current: Node | null = startContainer

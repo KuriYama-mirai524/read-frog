@@ -1387,6 +1387,9 @@ options:
         title: 音量
         description: ボイス本来の大きさからどれだけ大きく、または小さく読むか。-100 から 100 パーセント。
       error: $1 から $2 までの整数を入力してください
+      stripRuby:
+        title: 読み上げ時にふりがなを無視
+        description: ruby のふりがなを読み上げから外し、漢字を一度だけ読ませます。Furigana Maker や Yomitan で注音したページ向けです。
   videoSubtitles:
     title: 動画字幕
     pageDescription: 視聴しながら字幕を翻訳します。プロバイダー・スタイル・リクエスト設定は個別に指定できます。

@@ -1397,6 +1397,9 @@ options:
         title: 音量
         description: 相對語音本身的音量大多少或小多少，範圍 -100 到 100 個百分點。
       error: 請輸入 $1 到 $2 之間的整數
+      stripRuby:
+        title: 朗讀時忽略注音（振假名）
+        description: 跳過 ruby 注音，只讀漢字本身，避免每個詞被「漢字 + 假名」讀兩遍。適合 Furigana Maker、Yomitan 等注音頁面。
   videoSubtitles:
     title: 影片字幕
     pageDescription: 邊看邊譯影片字幕，並單獨設定提供者、樣式和請求參數。

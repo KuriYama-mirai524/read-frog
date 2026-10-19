@@ -7,4 +7,5 @@ export const DEFAULT_TTS_CONFIG: TTSConfig = {
   rate: 0,
   pitch: 0,
   volume: 0,
+  stripRuby: false,
 }

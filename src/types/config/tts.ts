@@ -3246,6 +3246,9 @@ export const ttsConfigSchema = z.object({
   rate: ttsRateSchema,
   pitch: ttsPitchSchema,
   volume: ttsVolumeSchema,
+  // Off by default: keeps the historical behaviour where ruby annotations are
+  // read aloud along with the base text.
+  stripRuby: z.boolean().default(false),
 })
 
 export type TTSConfig = z.infer<typeof ttsConfigSchema>

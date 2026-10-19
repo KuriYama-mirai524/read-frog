@@ -12,13 +12,14 @@ import { ANALYTICS_SURFACE } from "@/types/analytics"
 import { configFieldsAtomMap } from "@/utils/atoms/config"
 import { getSpeakShortcut } from "@/utils/constants/selection"
 import { i18n } from "@/utils/i18n"
-import { selectionContentAtom } from "./atoms"
+import { getSelectionSpeechText } from "../utils"
+import { selectionAtom } from "./atoms"
 import { ShortcutTooltipLabel } from "./shortcut-hint"
 import { useSelectionShortcuts } from "./use-selection-shortcuts"
 
 // Reads the selection aloud from the toolbar, or from its key.
 function useSelectionSpeechController() {
-  const selectionContent = useAtomValue(selectionContentAtom)
+  const selection = useAtomValue(selectionAtom)
   const ttsConfig = useAtomValue(configFieldsAtomMap.tts)
   const { speak } = useAtomValue(configFieldsAtomMap.selectionToolbar).features
   const { play, stop, isFetching, isPlaying } = useTextToSpeech(ANALYTICS_SURFACE.SELECTION_TOOLBAR)
@@ -33,7 +34,9 @@ function useSelectionSpeechController() {
         stop()
         return true
       }
-      const text = session?.selectionSnapshot.text
+      const text = session
+        ? getSelectionSpeechText(session.selectionSnapshot, ttsConfig.stripRuby)
+        : null
       if (!text) {
         return false
       }
@@ -50,14 +53,15 @@ function useSelectionSpeechController() {
       return true
     }
 
-    if (!selectionContent) {
+    const text = selection ? getSelectionSpeechText(selection, ttsConfig.stripRuby) : null
+    if (!text) {
       toastManager.add({ type: "error", title: i18n.t("speak.noTextSelected") })
       return false
     }
 
-    void play(selectionContent, ttsConfig)
+    void play(text, ttsConfig)
     return true
-  }, [isBusy, play, selectionContent, stop, ttsConfig])
+  }, [isBusy, play, selection, stop, ttsConfig])
 
   const label = isFetching
     ? i18n.t("speak.fetchingAudio")
