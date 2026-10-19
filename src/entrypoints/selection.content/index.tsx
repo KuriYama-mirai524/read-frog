@@ -20,8 +20,9 @@ import { ShadowWrapperContext } from "@/utils/react-shadow-host/create-shadow-ho
 import { protectSelectAllShadowRoot } from "@/utils/select-all"
 import {
   insertShadowRootUIWrapperInto,
+  keepShadowHostConnected,
+  moveShadowHostToDocumentRoot,
   OVERLAY_SHADOW_ROOT_CSS,
-  reattachShadowHostOnBodySwap,
 } from "@/utils/shadow-root"
 import {
   clearEffectiveSiteControlUrl,
@@ -96,7 +97,10 @@ async function mountSelectionUI(ctx: ContentScriptContext) {
   })
 
   ui.mount()
-  ctx.onInvalidated(reattachShadowHostOnBodySwap(ui.shadowHost))
+  // Anchor the overlay to <html>: reader modes hide <body> and rebuild the page
+  // under it, which removes anything injected into <body> (#2370).
+  moveShadowHostToDocumentRoot(ui.shadowHost)
+  ctx.onInvalidated(keepShadowHostConnected(ui.shadowHost))
 }
 
 export default defineContentScript({

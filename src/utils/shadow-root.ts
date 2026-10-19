@@ -24,6 +24,46 @@ export function insertShadowRootUIWrapperInto(container: HTMLElement, shadowHost
   return wrapper
 }
 
+/**
+ * Move the UI host out of <body> and under <html>.
+ *
+ * Reader modes (SimpRead, for one) keep the same <body> but hide it, rebuild the
+ * article into a sibling node under <html>, and drop whatever extensions had
+ * injected into <body>. A host anchored to <html> survives that rebuild, and
+ * stays visible while `body { display: none }` is in effect.
+ */
+export function moveShadowHostToDocumentRoot(shadowHost: HTMLElement) {
+  const root = shadowHost.ownerDocument?.documentElement
+  if (root && shadowHost.parentElement !== root) root.append(shadowHost)
+}
+
+/**
+ * Re-attach a host that a page removed behind our back, keeping its shadow tree
+ * (and so its React state) intact. Only a disconnected host is re-appended:
+ * while a selection popup is inside a native <dialog> the host is connected but
+ * not a child of <html>, and must be left alone.
+ */
+export function keepShadowHostConnected(shadowHost: HTMLElement): () => void {
+  const root = shadowHost.ownerDocument?.documentElement
+  if (!root) return () => {}
+
+  let scheduled = false
+  const reattach = () => {
+    if (!shadowHost.isConnected) root.append(shadowHost)
+  }
+  const observer = new MutationObserver(() => {
+    if (scheduled || shadowHost.isConnected) return
+    scheduled = true
+    // Mutations arrive in batches; re-checking once per batch is enough.
+    queueMicrotask(() => {
+      scheduled = false
+      reattach()
+    })
+  })
+  observer.observe(root, { childList: true, subtree: true })
+  return () => observer.disconnect()
+}
+
 /** Keep an existing UI and its React state when a client router replaces <body>. */
 export function reattachShadowHostOnBodySwap(shadowHost: HTMLElement): () => void {
   let currentBody = document.body

@@ -10,6 +10,8 @@ import {
 import { walkAndLabelElement } from "@/utils/host/dom/traversal"
 import {
   insertShadowRootUIWrapperInto,
+  keepShadowHostConnected,
+  moveShadowHostToDocumentRoot,
   OVERLAY_SHADOW_ROOT_CSS,
   reattachShadowHostOnBodySwap,
 } from "../shadow-root"
@@ -69,6 +71,68 @@ describe("insertShadowRootUIWrapperInto", () => {
       expect(element).not.toHaveAttribute(PARAGRAPH_ATTRIBUTE)
       expect(element).not.toHaveAttribute(BLOCK_ATTRIBUTE)
     }
+  })
+})
+
+describe("reader-mode anchoring", () => {
+  afterEach(() => {
+    document.querySelectorAll("read-frog-selection").forEach((host) => host.remove())
+  })
+
+  it("moves the host from <body> to <html>", () => {
+    const shadowHost = document.createElement("read-frog-selection")
+    document.body.append(shadowHost)
+
+    moveShadowHostToDocumentRoot(shadowHost)
+
+    expect(shadowHost.parentElement).toBe(document.documentElement)
+  })
+
+  it("re-attaches a host the page removed, keeping its shadow tree", async () => {
+    const shadowHost = document.createElement("read-frog-selection")
+    const shadowRoot = shadowHost.attachShadow({ mode: "open" })
+    const button = document.createElement("button")
+    shadowRoot.append(button)
+    document.documentElement.append(shadowHost)
+
+    const stop = keepShadowHostConnected(shadowHost)
+
+    // SimpRead-style rebuild: a reader root is added under <html> and the host is dropped.
+    const readerRoot = document.createElement("sr-read")
+    document.documentElement.append(readerRoot)
+    shadowHost.remove()
+    expect(shadowHost.isConnected).toBe(false)
+
+    await Promise.resolve()
+    await Promise.resolve()
+
+    expect(shadowHost.parentElement).toBe(document.documentElement)
+    expect(shadowHost.shadowRoot).toBe(shadowRoot)
+    expect(shadowRoot.firstChild).toBe(button)
+
+    stop()
+    shadowHost.remove()
+    await Promise.resolve()
+    await Promise.resolve()
+    expect(shadowHost.isConnected).toBe(false)
+    readerRoot.remove()
+  })
+
+  it("leaves a host alone while it sits in a native dialog", async () => {
+    const dialog = document.createElement("dialog")
+    const shadowHost = document.createElement("read-frog-selection")
+    dialog.append(shadowHost)
+    document.body.append(dialog)
+
+    const stop = keepShadowHostConnected(shadowHost)
+    document.documentElement.append(document.createElement("main"))
+    await Promise.resolve()
+    await Promise.resolve()
+
+    expect(shadowHost.parentElement).toBe(dialog)
+
+    stop()
+    dialog.remove()
   })
 })
 
